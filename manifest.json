@@ -4,24 +4,27 @@
     "version": "1.0",
     "description": "Saves job data from Indeed to a database.",
     "permissions": [
-        "activeTab",
-        "storage"
+      "activeTab",
+      "storage"
+    ],
+    "host_permissions": [
+      "https://job-app-tracker-website-b2cef22d84a2.herokuapp.com/"
     ],
     "content_scripts": [
-        {
-            "matches": ["https://www.indeed.com/*"],
-            "js": ["content.js"]
-        }
+      {
+        "matches": ["https://www.indeed.com/*"],
+        "js": ["content.js"]
+      }
     ],
     "background": {
-        "service_worker": "background.js"
+      "service_worker": "background.js"
     },
     "action": {
-        "default_icon": {
-            "16": "favicon.ico"
-        }
+      "default_icon": {
+        "16": "favicon.ico"
+      }
     },
     "icons": {
-        "16": "favicon.ico"
+      "16": "favicon.ico"
     }
-}
+  }

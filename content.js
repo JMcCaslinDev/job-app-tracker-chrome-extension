@@ -147,6 +147,21 @@ function saveJobData(jobContainer) {
     };
 
     console.log("\n\n\nJob Data to be saved:", jobData);
+
+    fetch('https://job-app-tracker-website-b2cef22d84a2.herokuapp.com/api/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(jobData),
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Job saved successfully:', data);
+        })
+        .catch(error => {
+          console.error('Error saving job:', error);
+        });
 }
 
 
