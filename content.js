@@ -42,74 +42,104 @@ function addSaveJobButton() {
     }
 }
 
+
+
+
 function saveJobData(jobContainer) {
     const safeTextContent = (selector) => {
         const element = jobContainer.querySelector(selector);
         return element ? element.textContent.trim() : '';
     };
 
-    // Basic job info
+    // jobTitle & jobCompany    Required for job posts
     const jobTitle = safeTextContent('.jobsearch-JobInfoHeader-title').replace(/\s-\sjob\spost$/, '');
-    const jobCompany = safeTextContent('[data-testid="inlineHeader-companyName"]');
+    console.log("\njobTitle: ", jobTitle, "\n");
+    const jobCompany = safeTextContent('[data-company-name="true"]');
+    console.log("\njobCompany: ", jobCompany, "\n");
+
+    // Location and work mode   Optional on job post
     const jobLocation = safeTextContent('[data-testid="inlineHeader-companyLocation"]');
+    const workLocationMode = jobLocation.includes('Hybrid') ? 'Hybrid' : jobLocation.includes('Remote') ? 'Remote' : 'Not specified';
+    console.log("\nworkLocationMode: ", workLocationMode, "\n");
+    const cleanedJobLocation = jobLocation.replace(/•|Hybrid work|Remote|-/g, '').trim();
+    console.log("\ncleanedJobLocation: ", cleanedJobLocation, "\n");
 
-    // Pay from the top row
-    const topRowPay = safeTextContent('#salaryInfoAndJobType');
-    const topRowPayRange = topRowPay.match(/\$(\d+(?:,\d+)*(?:\.\d+)?)\s*-\s*\$(\d+(?:,\d+)*(?:\.\d+)?)/i);
-    const topRowMinPay = topRowPayRange ? topRowPayRange[1] : '';
-    const topRowMaxPay = topRowPayRange ? topRowPayRange[2] : '';
+    // basePay & maxPay & payType   Optional on job posts
+    let basePay = null;
+    let maxPay = null;
+    let payType = 'Not specified';
+    
+    const payElements = jobContainer.querySelectorAll('[data-testid="detailSalary"], #salaryInfoAndJobType');
+    for (const payElement of payElements) {
+        const payText = payElement.textContent.trim();
+        const payMatch = payText.match(/(?:From\s+)?\$(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:an?\s+hour|a\s+year)?(?:\s*[-–]\s*\$(\d+(?:,\d+)*(?:\.\d+)?)(?:\s*an?\s+hour|\s*a\s+year)?)?/i);
+        if (payMatch) {
+            basePay = parseFloat(payMatch[1].replace(/,/g, ''));
+            if (payMatch[2]) {
+                maxPay = parseFloat(payMatch[2].replace(/,/g, ''));
+            }
+            payType = payText.toLowerCase().includes('hour') ? 'Hourly' : 'Salary';
+            break;
+        }
+    }
+    console.log("\nbasePay: ", basePay, "\n");
+    console.log("\nmaxPay: ", maxPay, "\n");
+    console.log("\npayType: ", payType, "\n");
+    
+    // Employment type
+    let employmentType = 'Not specified';
+    const employmentTypeElements = jobContainer.querySelectorAll('[data-testid="detailJobType"], #salaryInfoAndJobType');
+    for (const employmentTypeElement of employmentTypeElements) {
+        const typeText = employmentTypeElement.textContent.trim();
+        const typeMatch = typeText.match(/(Full-time|Part-time|Contract|Temporary|Internship)/i); 
+        if (typeMatch) {
+            employmentType = typeMatch[1];
+            break;
+        }
+    }
+    console.log("\nemploymentType: ", employmentType, "\n");
 
-    // Employment type from the top row
-    const topRowEmploymentType = topRowPay.match(/(Full-time|Part-time|Contract|Temporary|Internship)/i);
-
-    // Pay and employment type from the job details section
-    const jobDetails = jobContainer.querySelector('#jobDetails');
-    const payElement = jobDetails ? jobDetails.querySelector('[data-testid="detailSalary"]') : null;
-    const payText = payElement ? payElement.textContent.trim() : '';
-    const payRange = payText.match(/\$(\d+(?:,\d+)*(?:\.\d+)?)\s*-\s*\$(\d+(?:,\d+)*(?:\.\d+)?)/i);
-    const minPay = payRange ? payRange[1] : '';
-    const maxPay = payRange ? payRange[2] : '';
-
-    const employmentTypeElement = jobDetails ? jobDetails.querySelector('[data-testid="detailJobType"]') : null;
-    const employmentType = employmentTypeElement ? employmentTypeElement.textContent.trim() : '';
-
-    const workSettingElement = jobDetails ? jobDetails.querySelector('[data-testid="detailWorkSetting"]') : null;
-    const workSetting = workSettingElement ? workSettingElement.textContent.trim() : '';
-
-    // Determine the pay amount and type
-    const minPayAmount = topRowMinPay || minPay;
-    const maxPayAmount = topRowMaxPay || maxPay;
-    const pay = minPayAmount && maxPayAmount ? `${minPayAmount} - ${maxPayAmount}` : minPayAmount || maxPayAmount || 'Not specified';
-    const payType = minPayAmount && maxPayAmount ? 'Salary' : 'Not specified';
-
-    const finalEmploymentType = topRowEmploymentType ? topRowEmploymentType[1] : employmentType || 'Not specified';
-
+    // Experience level
+    let experienceLevel = 'Not specified';
+    const experienceLevelElement = jobContainer.querySelector('[data-testid="detailExperienceRequirements"]');
+    if (experienceLevelElement) {
+        const levelText = experienceLevelElement.textContent.trim();
+        const levelMatch = levelText.match(/(Entry level|Mid level|Senior level)/i); 
+        if (levelMatch) {
+            experienceLevel = levelMatch[1];
+        }
+    }
+    console.log("\nexperienceLevel: ", experienceLevel, "\n");
+    
     const jobDescriptionElement = jobContainer.querySelector('.jobsearch-jobDescriptionText');
     const jobDescriptionText = jobDescriptionElement ? jobDescriptionElement.innerText : '';
+    // console.log("jobDescriptionText: ", jobDescriptionText, "\n");
 
     // Build job posting URL
     const jobPostingUrl = window.location.href;
+    console.log("\njobPostingUrl: ", job_posting_url, "\n");
 
     const jobData = {
         account_id: "default_account_id",
         company_name: jobCompany,
         job_title: jobTitle,
         application_status: "To Apply",
-        date_applied: new Date().toISOString(),
+        date_applied: new Date().toISOString(), 
         job_description: jobDescriptionText,
         notes: "",
         application_method: "Indeed",
-        pay_amount: pay,
+        base_pay: basePay,
+        max_pay: maxPay,
         job_posting_url: jobPostingUrl,
         pay_type: payType,
-        employment_type: finalEmploymentType,
-        work_location_mode: workSetting || 'Not specified',
-        location: jobLocation,
-        experience_level: "Not Specified",
+        employment_type: employmentType,
+        work_location_mode: workLocationMode, 
+        location: cleanedJobLocation,
+        experience_level: experienceLevel,
         pinned: false
     };
 
-    console.log("Job Data to be saved:", jobData);
+    console.log("\n\n\nJob Data to be saved:", jobData);
 }
 
 
