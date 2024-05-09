@@ -42,13 +42,84 @@ function addSaveJobButton() {
     }
 }
 
-// Function to save job data
 function saveJobData(jobContainer) {
-    const jobTitle = jobContainer.querySelector('.jobsearch-JobInfoHeader-title').textContent;
-    const jobCompany = jobContainer.querySelector('[data-testid="inlineHeader-companyName"]').textContent;
-    const jobLocation = jobContainer.querySelector('[data-testid="inlineHeader-companyLocation"]').textContent;
-    console.log(`Saving Job: ${jobTitle.trim()}, ${jobCompany.trim()}, ${jobLocation.trim()}`);
+    const safeTextContent = (selector) => {
+        const element = jobContainer.querySelector(selector);
+        return element ? element.textContent.trim() : '';
+    };
+
+    // Basic job info
+    const jobTitle = safeTextContent('.jobsearch-JobInfoHeader-title').replace(/\s-\sjob\spost$/, '');
+    const jobCompany = safeTextContent('[data-testid="inlineHeader-companyName"]');
+    const jobLocation = safeTextContent('[data-testid="inlineHeader-companyLocation"]');
+
+    // Pay from the top row
+    const topRowPay = safeTextContent('#salaryInfoAndJobType');
+    const topRowPayRange = topRowPay.match(/\$(\d+(?:,\d+)*(?:\.\d+)?)\s*-\s*\$(\d+(?:,\d+)*(?:\.\d+)?)/i);
+    const topRowMinPay = topRowPayRange ? topRowPayRange[1] : '';
+    const topRowMaxPay = topRowPayRange ? topRowPayRange[2] : '';
+
+    // Employment type from the top row
+    const topRowEmploymentType = topRowPay.match(/(Full-time|Part-time|Contract|Temporary|Internship)/i);
+
+    // Pay and employment type from the job details section
+    const jobDetails = jobContainer.querySelector('#jobDetails');
+    const payElement = jobDetails ? jobDetails.querySelector('[data-testid="detailSalary"]') : null;
+    const payText = payElement ? payElement.textContent.trim() : '';
+    const payRange = payText.match(/\$(\d+(?:,\d+)*(?:\.\d+)?)\s*-\s*\$(\d+(?:,\d+)*(?:\.\d+)?)/i);
+    const minPay = payRange ? payRange[1] : '';
+    const maxPay = payRange ? payRange[2] : '';
+
+    const employmentTypeElement = jobDetails ? jobDetails.querySelector('[data-testid="detailJobType"]') : null;
+    const employmentType = employmentTypeElement ? employmentTypeElement.textContent.trim() : '';
+
+    const workSettingElement = jobDetails ? jobDetails.querySelector('[data-testid="detailWorkSetting"]') : null;
+    const workSetting = workSettingElement ? workSettingElement.textContent.trim() : '';
+
+    // Determine the pay amount and type
+    const minPayAmount = topRowMinPay || minPay;
+    const maxPayAmount = topRowMaxPay || maxPay;
+    const pay = minPayAmount && maxPayAmount ? `${minPayAmount} - ${maxPayAmount}` : minPayAmount || maxPayAmount || 'Not specified';
+    const payType = minPayAmount && maxPayAmount ? 'Salary' : 'Not specified';
+
+    const finalEmploymentType = topRowEmploymentType ? topRowEmploymentType[1] : employmentType || 'Not specified';
+
+    const jobDescriptionElement = jobContainer.querySelector('.jobsearch-jobDescriptionText');
+    const jobDescriptionText = jobDescriptionElement ? jobDescriptionElement.innerText : '';
+
+    // Build job posting URL
+    const jobPostingUrl = window.location.href;
+
+    const jobData = {
+        account_id: "default_account_id",
+        company_name: jobCompany,
+        job_title: jobTitle,
+        application_status: "To Apply",
+        date_applied: new Date().toISOString(),
+        job_description: jobDescriptionText,
+        notes: "",
+        application_method: "Indeed",
+        pay_amount: pay,
+        job_posting_url: jobPostingUrl,
+        pay_type: payType,
+        employment_type: finalEmploymentType,
+        work_location_mode: workSetting || 'Not specified',
+        location: jobLocation,
+        experience_level: "Not Specified",
+        pinned: false
+    };
+
+    console.log("Job Data to be saved:", jobData);
 }
+
+
+
+
+
+
+
+
+
 
 // Mutation observer to react to changes in the DOM
 const observer = new MutationObserver((mutations, obs) => {
