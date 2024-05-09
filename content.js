@@ -59,9 +59,16 @@ function saveJobData(jobContainer) {
 
     // Location and work mode   Optional on job post
     const jobLocation = safeTextContent('[data-testid="inlineHeader-companyLocation"]');
-    const workLocationMode = jobLocation.includes('Hybrid') ? 'Hybrid' : jobLocation.includes('Remote') ? 'Remote' : 'Not specified';
+
+    let workLocationMode = 'On-site';
+    if (jobLocation.toLowerCase().includes('hybrid')) {
+        workLocationMode = 'Hybrid';
+    } else if (jobLocation.toLowerCase().includes('remote')) {
+        workLocationMode = 'Remote';
+    }
     console.log("\nworkLocationMode: ", workLocationMode, "\n");
-    const cleanedJobLocation = jobLocation.replace(/•|Hybrid work|Remote|-/g, '').trim();
+
+    const cleanedJobLocation = jobLocation.replace(/•|hybrid\s*work|remote\s*work|-/gi, '').trim();
     console.log("\ncleanedJobLocation: ", cleanedJobLocation, "\n");
 
     // basePay & maxPay & payType   Optional on job posts
@@ -117,7 +124,7 @@ function saveJobData(jobContainer) {
 
     // Build job posting URL
     const jobPostingUrl = window.location.href;
-    console.log("\njobPostingUrl: ", job_posting_url, "\n");
+    console.log("\njobPostingUrl: ", jobPostingUrl, "\n");
 
     const jobData = {
         account_id: "default_account_id",
