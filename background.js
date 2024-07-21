@@ -2,7 +2,7 @@ chrome.runtime.onInstalled.addListener(function() {
     chrome.declarativeContent.onPageChanged.removeRules(undefined, function() {
         chrome.declarativeContent.onPageChanged.addRules([{
             conditions: [new chrome.declarativeContent.PageStateMatcher({
-                pageUrl: {hostEquals: 'job-app-tracker-website-b2cef22d84a2.herokuapp.com'},
+                pageUrl: {hostEquals: 'localhost', pathContains: 'dashboard'}
             })],
             actions: [new chrome.declarativeContent.ShowPageAction()]
         }]);
@@ -18,5 +18,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 chrome.action.onClicked.addListener(function(tab) {
-    chrome.tabs.create({ url: 'https://job-app-tracker-website-b2cef22d84a2.herokuapp.com/dashboard' });
+    const dashboardUrl = process.env.DASHBOARD_URL || 'http://localhost:3000/dashboard';
+    chrome.tabs.create({ url: dashboardUrl });
 });

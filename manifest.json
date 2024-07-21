@@ -1,36 +1,37 @@
 {
-    "manifest_version": 3,
-    "name": "Indeed Job Saver",
-    "version": "1.0",
-    "description": "Saves job data from Indeed to a database.",
-    "permissions": [
+  "manifest_version": 3,
+  "name": "Indeed Job Saver",
+  "version": "1.0",
+  "description": "Saves job data from Indeed to a database.",
+  "permissions": [
       "activeTab",
       "storage",
       "declarativeContent",
       "tabs"
-    ],
-    "host_permissions": [
-      "https://job-app-tracker-website-b2cef22d84a2.herokuapp.com/"
-    ],
-    "content_scripts": [
+  ],
+  "host_permissions": [
+      "http://localhost:3000/*",
+      "https://your-production-url.com/*"
+  ],
+  "content_scripts": [
       {
-        "matches": ["https://www.indeed.com/*"],
-        "js": ["content_indeed.js"]
+          "matches": ["https://www.indeed.com/*"],
+          "js": ["content_indeed.js"]
       },
       {
-        "matches": ["https://job-app-tracker-website-b2cef22d84a2.herokuapp.com/*"],
-        "js": ["content_website.js"]
+          "matches": ["http://localhost:3000/*", "https://your-production-url.com/*"],
+          "js": ["content_website.js"]
       }
-    ],
-    "background": {
+  ],
+  "background": {
       "service_worker": "background.js"
-    },
-    "action": {
+  },
+  "action": {
       "default_icon": {
-        "16": "favicon.ico"
+          "16": "favicon.ico"
       }
-    },
-    "icons": {
+  },
+  "icons": {
       "16": "favicon.ico"
-    }
   }
+}
