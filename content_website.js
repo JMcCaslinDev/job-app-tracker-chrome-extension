@@ -32,7 +32,7 @@ const config = {
   // Function to retrieve and store the token
   function retrieveAndStoreToken() {
     console.log("Attempting to retrieve and store token.");
-    const token = getCookie('token');
+    const token = getCookie('extension_token');
     if (token) {
       console.log("Token found:", token);
       chrome.runtime.sendMessage({ type: "STORE_TOKEN", token: token });

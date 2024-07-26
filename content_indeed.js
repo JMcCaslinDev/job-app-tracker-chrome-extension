@@ -145,13 +145,13 @@ function saveJobData(jobContainer) {
 
     console.log("Extracted job data:", jobData);
 
-    chrome.storage.local.get('token', function(data) {
+    chrome.storage.local.get('extension_token', function(data) {
         const token = data.token;
         if (token) {
             console.log("Token found in chrome.storage.local:", token);
             console.log("Sending job data to server...");
             
-            fetch('https://job-app-tracker-website-b2cef22d84a2.herokuapp.com/api/jobs', {
+            fetch('http://localhost:3000/chromeExtension/api/jobs', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -174,7 +174,7 @@ function saveJobData(jobContainer) {
             });
         } else {
             console.error('Token not found in chrome.storage.local');
-            chrome.tabs.create({ url: 'https://job-app-tracker-website-b2cef22d84a2.herokuapp.com/dashboard' });
+            chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
         }
     });
 }
