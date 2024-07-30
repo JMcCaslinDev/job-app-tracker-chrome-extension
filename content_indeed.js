@@ -3,6 +3,7 @@ console.log("Indeed content script starting.");
 // Function to add the save job button
 function addSaveJobButton() {
     const jobDetailContainer = document.querySelector('.jobsearch-ViewJobLayout--embedded');
+    console.log("Checking for jobDetailContainer.");
     if (jobDetailContainer && !jobDetailContainer.querySelector('.save-job-btn')) {
         console.log("Adding 'Save Job' button.");
         const button = document.createElement('button');
@@ -27,6 +28,7 @@ function addSaveJobButton() {
             this.style.backgroundColor = '#2557a7';
         };
         button.onclick = function() {
+            console.log("Save Job button clicked.");
             saveJobData(jobDetailContainer);
         };
 
@@ -43,6 +45,7 @@ function addSaveJobButton() {
 }
 
 function saveJobData(jobContainer) {
+    console.log("Starting to save job data.");
     const safeTextContent = (selector) => {
         const element = jobContainer.querySelector(selector);
         return element ? element.textContent.trim() : '';
@@ -117,14 +120,13 @@ function saveJobData(jobContainer) {
     
     const jobDescriptionElement = jobContainer.querySelector('.jobsearch-jobDescriptionText');
     const jobDescriptionText = jobDescriptionElement ? jobDescriptionElement.innerText : '';
-    // console.log("jobDescriptionText: ", jobDescriptionText, "\n");
 
     // Build job posting URL
     const jobPostingUrl = window.location.href;
     console.log("\njobPostingUrl: ", jobPostingUrl, "\n");
 
     const jobData = {
-        account_id: "default_account_id",
+        account_id: "default_account_id", // This should be dynamically set based on user session
         company_name: jobCompany,
         job_title: jobTitle,
         application_status: "To Apply",
@@ -146,36 +148,35 @@ function saveJobData(jobContainer) {
     console.log("Extracted job data:", jobData);
 
     chrome.storage.local.get('extension_token', function(data) {
-        const token = data.token;
-        if (token) {
-            console.log("Token found in chrome.storage.local:", token);
-            console.log("Sending job data to server...");
-            
-            fetch('http://localhost:3000/chromeExtension/api/jobs', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(jobData),
-            })
-            .then(response => {
-                console.log("Server response received.");
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Job saved successfully:', data);
-            })
-            .catch(error => {
-                console.error('Error saving job:', error);
-            });
-        } else {
+        if (!data.extension_token) {
             console.error('Token not found in chrome.storage.local');
             chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
+            return;
         }
+        const token = data.extension_token;
+        console.log("Token found:", token);
+
+        fetch('http://localhost:3000/chromeExtension/api/jobs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(jobData),
+        })
+        .then(response => {
+            console.log("Server response received, status:", response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Job saved successfully:', data);
+        })
+        .catch(error => {
+            console.error('Error saving job:', error);
+        });
     });
 }
 
