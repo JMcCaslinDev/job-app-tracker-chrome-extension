@@ -118,7 +118,7 @@ function saveJobData(jobContainer) {
     }
     console.log("\nexperienceLevel: ", experienceLevel, "\n");
     
-    const jobDescriptionElement = jobContainer.querySelector('.jobsearch-jobDescriptionText');
+    const jobDescriptionElement = jobContainer.querySelector('.jobsearch-jobDescriptionText') || jobContainer.querySelector('#jobDescriptionText');
     const jobDescriptionText = jobDescriptionElement ? jobDescriptionElement.innerText : '';
 
     // Build job posting URL
@@ -129,7 +129,7 @@ function saveJobData(jobContainer) {
         account_id: "default_account_id", // This should be dynamically set based on user session
         company_name: jobCompany,
         job_title: jobTitle,
-        application_status: "To Apply",
+        application_status: "Applied",
         date_applied: new Date().toISOString(), 
         job_description: jobDescriptionText,
         notes: "",
