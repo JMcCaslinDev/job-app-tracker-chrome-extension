@@ -16,11 +16,11 @@
   "content_scripts": [
     {
       "matches": ["https://www.indeed.com/*"],
-      "js": ["content_indeed.js"]
+      "js": ["config.js", "content_indeed.js"]
     },
     {
       "matches": ["http://localhost:3000/*", "http://localhost/dashboard/*", "https://your-production-url.com/*"],
-      "js": ["content_website.js"]
+      "js": ["config.js", "content_website.js"]
     }
   ],
   "background": {

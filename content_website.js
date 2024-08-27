@@ -1,53 +1,67 @@
-// Configuration values
-const config = {
-  site_url: 'http://localhost:3000'  // Replace this with your actual site URL
-};
+// brings in global variables from config file
+const BASE_URL = CONFIG.DEV_MODE ? CONFIG.DEV_BASE_URL : CONFIG.BASE_URL;
+console.log(`Running in ${CONFIG.DEV_MODE ? 'development' : 'production'} mode.`);
 
-// Log when the content script starts
-console.log("Website content script starting.");
+// Function to decode a JWT and check if it has expired
+function isTokenExpired(token) {
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const expiryTime = payload.exp * 1000; // Convert to milliseconds
+        const currentTime = Date.now();
+        return currentTime > expiryTime;
+    } catch (error) {
+        console.error("Error decoding token:", error);
+        return true; // Assume expired if there's an error
+    }
+}
 
-// Function to list all cookies
-function listAllCookies() {
-  console.log("Listing all cookies:");
-  const cookiesArray = document.cookie.split(';').map(cookie => cookie.trim());
-  cookiesArray.forEach(cookie => console.log(cookie));
+// Function to check if the token is valid or expired
+function validateToken(callback) {
+    chrome.storage.local.get('extension_token', function(data) {
+        if (chrome.runtime.lastError) {
+            console.error('Error checking token in local storage:', chrome.runtime.lastError);
+            callback(false);
+        } else {
+            if (data.extension_token) {
+                console.log('Token found in local storage:', data.extension_token);
+                if (isTokenExpired(data.extension_token)) {
+                    console.log('Token is expired.');
+                    callback(false);
+                } else {
+                    console.log('Token is valid.');
+                    callback(true);
+                }
+            } else {
+                console.log('Token not found in local storage.');
+                callback(false);
+            }
+        }
+    });
 }
 
 // Function to get a cookie by name
 function getCookie(name) {
-  console.log(`Attempting to retrieve cookie with name: ${name}`);
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-      const cookieValue = parts.pop().split(';').shift();
-      console.log(`Cookie "${name}" found with value:`, cookieValue);
-      return cookieValue;
-  } else {
-      console.log(`Cookie "${name}" not found. All cookies:`, document.cookie);
-      return null;
-  }
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
 }
 
+// Function to check if the specified cookie is present
+function isCookiePresent(name) {
+    return getCookie(name) !== null;
+}
+
+// Function to retrieve the JWT from cookies and store it in chrome.storage.local
 function retrieveAndStoreToken() {
-    console.log("Attempting to retrieve and store token.");
     const token = getCookie('extension_token');
     if (token) {
         console.log("Token found:", token);
-        chrome.runtime.sendMessage({ type: "STORE_TOKEN", token: token }, function(response) {
+        chrome.storage.local.set({ 'extension_token': token }, function() {
             if (chrome.runtime.lastError) {
                 console.error("Runtime error:", chrome.runtime.lastError);
-            } else if (response && response.status === "success") {
-                console.log("Response from background script:", response.message);
-                // Immediately verify by retrieving the token from chrome.storage.local
-                chrome.storage.local.get('extension_token', function(data) {
-                    if (chrome.runtime.lastError) {
-                        console.error('Error retrieving token from local storage:', chrome.runtime.lastError);
-                    } else {
-                        console.log('Token retrieved from local storage:', data.extension_token);
-                    }
-                });
             } else {
-                console.log("No response or unexpected response from background script.");
+                console.log("Token stored successfully.");
             }
         });
     } else {
@@ -55,57 +69,38 @@ function retrieveAndStoreToken() {
     }
 }
 
-// Function to handle login or signup page events
-function handleLoginOrSignup() {
-  console.log("Handling login or signup.");
-  console.log("Current URL:", window.location.href);
-  if (window.location.href.includes(`${config.site_url}/verify`) || window.location.href.includes(`${config.site_url}/dashboard`)) {
-      console.log("URL indicates verify or dashboard page. Waiting before retrieving token.");
-      setTimeout(retrieveAndStoreToken, 1500); // Adjust the delay as needed
-  } else {
-      console.log("URL does not indicate verify or dashboard page.");
-  }
+// Function to handle token storage only on the dashboard page
+function handleDashboardPage() {
+    const currentURL = window.location.href;
+    console.log("Current URL:", currentURL);
+
+    if (currentURL.includes(`${BASE_URL}/dashboard`)) {
+        console.log("On the dashboard page.");
+
+        validateToken(function(isValid) {
+            if (!isValid) {
+                console.log("Token is either not saved or expired. Checking for token in cookies.");
+                if (isCookiePresent('extension_token')) {
+                    retrieveAndStoreToken();
+                } else {
+                    console.log("Token cookie not present.");
+                }
+            } else {
+                console.log("Token is already saved and valid in local storage.");
+            }
+        });
+    } else {
+        console.log("Not on the dashboard page. No action taken.");
+    }
 }
 
-// Call the handleLoginOrSignup function whenever the URL changes
-window.addEventListener('popstate', handleLoginOrSignup);
-window.addEventListener('pushstate', handleLoginOrSignup);
-window.addEventListener('replacestate', handleLoginOrSignup);
-
-// Initial token retrieval when the content script is injected
-console.log("Initial token retrieval:");
-listAllCookies();  // List all cookies at the start
-retrieveAndStoreToken();
-
-// Adding a short timeout to allow for any delay in setting the token during page load
-document.addEventListener("DOMContentLoaded", function() {
-  console.log("DOM fully loaded and parsed. Setting timeout for token retrieval.");
-  listAllCookies();  // List all cookies after DOM load
-  setTimeout(retrieveAndStoreToken, 1500); // Adjust the delay as needed
-});
-
-// Modify history API to trigger handleLoginOrSignup on state changes
-(function(history){
-  const originalPushState = history.pushState;
-  const originalReplaceState = history.replaceState;
-  
-  history.pushState = function(state) {
-      if (typeof history.onpushstate === "function") {
-          history.onpushstate({ state });
-      }
-      console.log("pushState called");
-      return originalPushState.apply(history, arguments);
-  };
-
-  history.replaceState = function(state) {
-      if (typeof history.onreplacestate === "function") {
-          history.onreplacestate({ state });
-      }
-      console.log("replaceState called");
-      return originalReplaceState.apply(history, arguments);
-  };
-
-  window.addEventListener('popstate', handleLoginOrSignup);
-  window.onpushstate = history.onpushstate = handleLoginOrSignup;
-  window.onreplacestate = history.onreplacestate = handleLoginOrSignup;
-})(window.history);
+// Ensure the function is called either immediately or on DOMContentLoaded
+if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", function() {
+        console.log("DOM fully loaded and parsed. Checking for token on the dashboard page.");
+        setTimeout(handleDashboardPage, 0); // Trigger immediately after DOM is ready
+    });
+} else {
+    console.log("DOM already loaded. Checking for token on the dashboard page.");
+    setTimeout(handleDashboardPage, 0); // Trigger immediately if DOMContentLoaded has already fired
+}
